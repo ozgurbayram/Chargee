@@ -1,6 +1,7 @@
 package ws
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -28,9 +29,9 @@ func (s *Server) WsHandler(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 
-	id := ""
+	cpId := ""
 	if len(parts) >= 3 {
-		id = parts[2]
+		cpId = parts[2]
 	}
 
 	responseHeader := http.Header{}
@@ -54,12 +55,52 @@ func (s *Server) WsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		fmt.Printf("[%s] Message: %s\n", id, message)
-
-		if err := conn.WriteMessage(websocket.TextMessage, []byte(id)); err != nil {
+		if err := s.handleIncomingOcppMessage(message, cpId); err != nil {
 			fmt.Println("Error while writing ws message:", err)
 			break
 		}
 	}
 
+}
+
+type OcppMessage struct {
+	Type    int
+	Id      string
+	Action  string
+	Message json.RawMessage
+}
+
+func (m *OcppMessage) UnmarshalJSON(data []byte) error {
+	var raw []json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if len(raw) != 4 {
+		return fmt.Errorf("invalid OCPP message length: expected 4, got %d", len(raw))
+	}
+
+	if err := json.Unmarshal(raw[0], &m.Type); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw[1], &m.Id); err != nil {
+		return err
+	}
+	if err := json.Unmarshal(raw[2], &m.Action); err != nil {
+		return err
+	}
+
+	m.Message = raw[3]
+	return nil
+}
+
+func (s *Server) handleIncomingOcppMessage(message []byte, cpId string) error {
+	var msg OcppMessage
+
+	if err := json.Unmarshal(message, &msg); err != nil {
+		return fmt.Errorf("invalid ocpp message format: %w", err)
+	}
+
+	fmt.Printf("[%s] Parsed OCPP: %+v\n", cpId, msg.Action)
+	return nil
 }
