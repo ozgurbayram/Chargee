@@ -12,6 +12,7 @@ import (
 )
 
 type OcppService struct {
+	
 }
 
 func NewOcppService() *OcppService {
@@ -57,15 +58,15 @@ func (s *OcppService) WsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err := s.handleIncomingOcppMessage(message, cpId); err != nil {
-			fmt.Println("Error while writing ws message:", err)
+		if err := s.handleIncomingOcppMessage(message, cpId, conn); err != nil {
+			fmt.Println("Error while handling ocpp message:", err)
 			break
 		}
 	}
 
 }
 
-func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string) error {
+func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, conn *websocket.Conn) error {
 	var msg domain.OcppMessage
 
 	if err := json.Unmarshal(message, &msg); err != nil {
@@ -76,7 +77,19 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string) err
 
 	switch msg.Action {
 	case "BootNotification":
-		return handlers.HandleBootNotification(msg)
+		response, err := handlers.HandleBootNotification(msg)
+		if err != nil {
+			return err
+		}
+
+		responseBytes, err := domain.NewCallResult(msg.Id, response)
+		if err != nil {
+			return fmt.Errorf("failed to marshal response: %w", err)
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, responseBytes); err != nil {
+			return fmt.Errorf("failed to write response: %w", err)
+		}
 	}
 
 	return nil
