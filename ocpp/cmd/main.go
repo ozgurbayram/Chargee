@@ -5,16 +5,16 @@ import (
 	"log"
 	"net/http"
 	"ocpp/internal/config"
-	"ocpp/internal/ws"
+	"ocpp/internal/ocpp"
 )
 
 func main() {
 
 	cfg := config.NewConfig()
 
-	server := ws.NewServer()
+	ocppService := ocpp.NewOcppService()
 
-	http.HandleFunc("/ocpp/", server.WsHandler)
+	http.HandleFunc("/ocpp/", ocppService.WsHandler)
 
 	fmt.Println("Webserver started at", cfg.Port)
 

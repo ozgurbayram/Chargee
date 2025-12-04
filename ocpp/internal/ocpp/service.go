@@ -1,13 +1,22 @@
-package ws
+package ocpp
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"ocpp/internal/domain"
+	"ocpp/internal/handlers"
 	"strings"
 
 	"github.com/gorilla/websocket"
 )
+
+type OcppService struct {
+}
+
+func NewOcppService() *OcppService {
+	return &OcppService{}
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -17,14 +26,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-type Server struct {
-}
-
-func NewServer() *Server {
-	return &Server{}
-}
-
-func (s *Server) WsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *OcppService) WsHandler(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
@@ -63,44 +65,19 @@ func (s *Server) WsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-type OcppMessage struct {
-	Type    int
-	Id      string
-	Action  string
-	Message json.RawMessage
-}
-
-func (m *OcppMessage) UnmarshalJSON(data []byte) error {
-	var raw []json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-
-	if len(raw) != 4 {
-		return fmt.Errorf("invalid OCPP message length: expected 4, got %d", len(raw))
-	}
-
-	if err := json.Unmarshal(raw[0], &m.Type); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(raw[1], &m.Id); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(raw[2], &m.Action); err != nil {
-		return err
-	}
-
-	m.Message = raw[3]
-	return nil
-}
-
-func (s *Server) handleIncomingOcppMessage(message []byte, cpId string) error {
-	var msg OcppMessage
+func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string) error {
+	var msg domain.OcppMessage
 
 	if err := json.Unmarshal(message, &msg); err != nil {
 		return fmt.Errorf("invalid ocpp message format: %w", err)
 	}
 
 	fmt.Printf("[%s] Parsed OCPP: %+v\n", cpId, msg.Action)
+
+	switch msg.Action {
+	case "BootNotification":
+		return handlers.HandleBootNotification(msg)
+	}
+
 	return nil
 }
