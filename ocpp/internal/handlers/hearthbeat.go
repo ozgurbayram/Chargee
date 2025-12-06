@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func HandleHeartbeat(message domain.OcppMessage) (*domain.OcppMessage, error) {
+func HandleHeartbeat(message domain.OcppMessage, cpID string) (*domain.OcppMessage, error) {
 	var req domain.HeartbeatRequest
 
 	if err := json.Unmarshal(message.Message, &req); err != nil {

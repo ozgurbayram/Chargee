@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func HandleBootNotification(message domain.OcppMessage) (*domain.OcppMessage, error) {
+func HandleBootNotification(message domain.OcppMessage, cpId string) (*domain.OcppMessage, error) {
 	var req domain.BootNotificationRequest
 	if err := json.Unmarshal(message.Message, &req); err != nil {
 		return nil, err

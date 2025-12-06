@@ -41,18 +41,3 @@ func (m *OcppMessage) UnmarshalJSON(data []byte) error {
 	m.Message = raw[3]
 	return nil
 }
-
-func NewCallResult(id string, payload interface{}) ([]byte, error) {
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	response := []interface{}{
-		MessageTypeCallResult,
-		id,
-		json.RawMessage(payloadJSON),
-	}
-
-	return json.Marshal(response)
-}

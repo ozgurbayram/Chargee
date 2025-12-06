@@ -11,22 +11,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type OcppMessageHandler func(message domain.OcppMessage, cpID string) (*domain.OcppMessage, error)
+
 type OcppService struct {
 	handlers map[string]OcppMessageHandler
 }
 
-type OcppMessageHandler func(message domain.OcppMessage) (*domain.OcppMessage, error)
-
 func NewOcppService() *OcppService {
 	return &OcppService{
 		handlers: map[string]OcppMessageHandler{
-			"BootNotification": handlers.HandleBootNotification,
-			"Heartbeat":        handlers.HandleHeartbeat,
+			"BootNotification":   handlers.HandleBootNotification,
+			"Heartbeat":          handlers.HandleHeartbeat,
+			"StatusNotification": handlers.StatusNotificationHandler,
 		},
 	}
 }
 
 var upgrader = websocket.Upgrader{
+
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -86,7 +88,7 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, con
 		return fmt.Errorf("unknown ocpp message action: %s", msg.Action)
 	}
 
-	response, err := handler(msg)
+	response, err := handler(msg, cpId)
 	if err != nil {
 		return err
 	}
@@ -99,9 +101,18 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, con
 }
 
 func (s *OcppService) writeResponse(conn *websocket.Conn, response domain.OcppMessage) error {
-	responseBytes, err := domain.NewCallResult(response.Id, response)
+
+	_response := []interface{}{
+		response.Type,
+		response.Id,
+		response.Action,
+		response.Message,
+	}
+
+	responseBytes, err := json.Marshal(_response)
+
 	if err != nil {
-		return fmt.Errorf("failed to marshal response: %w", err)
+		return err
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, responseBytes); err != nil {
