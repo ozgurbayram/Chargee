@@ -12,11 +12,18 @@ import (
 )
 
 type OcppService struct {
-	
+	handlers map[string]OcppMessageHandler
 }
 
+type OcppMessageHandler func(message domain.OcppMessage) (*domain.OcppMessage, error)
+
 func NewOcppService() *OcppService {
-	return &OcppService{}
+	return &OcppService{
+		handlers: map[string]OcppMessageHandler{
+			"BootNotification": handlers.HandleBootNotification,
+			"Heartbeat":        handlers.HandleHeartbeat,
+		},
+	}
 }
 
 var upgrader = websocket.Upgrader{
@@ -73,23 +80,32 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, con
 		return fmt.Errorf("invalid ocpp message format: %w", err)
 	}
 
-	fmt.Printf("[%s] Parsed OCPP: %+v\n", cpId, msg.Action)
+	handler, ok := s.handlers[msg.Action]
 
-	switch msg.Action {
-	case "BootNotification":
-		response, err := handlers.HandleBootNotification(msg)
-		if err != nil {
-			return err
-		}
+	if !ok {
+		return fmt.Errorf("unknown ocpp message action: %s", msg.Action)
+	}
 
-		responseBytes, err := domain.NewCallResult(msg.Id, response)
-		if err != nil {
-			return fmt.Errorf("failed to marshal response: %w", err)
-		}
+	response, err := handler(msg)
+	if err != nil {
+		return err
+	}
 
-		if err := conn.WriteMessage(websocket.TextMessage, responseBytes); err != nil {
-			return fmt.Errorf("failed to write response: %w", err)
-		}
+	if err := s.writeResponse(conn, *response); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *OcppService) writeResponse(conn *websocket.Conn, response domain.OcppMessage) error {
+	responseBytes, err := domain.NewCallResult(response.Id, response)
+	if err != nil {
+		return fmt.Errorf("failed to marshal response: %w", err)
+	}
+
+	if err := conn.WriteMessage(websocket.TextMessage, responseBytes); err != nil {
+		return fmt.Errorf("failed to write response: %w", err)
 	}
 
 	return nil

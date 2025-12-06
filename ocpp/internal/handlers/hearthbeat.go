@@ -6,16 +6,15 @@ import (
 	"time"
 )
 
-func HandleBootNotification(message domain.OcppMessage) (*domain.OcppMessage, error) {
-	var req domain.BootNotificationRequest
+func HandleHeartbeat(message domain.OcppMessage) (*domain.OcppMessage, error) {
+	var req domain.HeartbeatRequest
+
 	if err := json.Unmarshal(message.Message, &req); err != nil {
 		return nil, err
 	}
 
-	response := &domain.BootNotificationResponse{
-		Status:      domain.RegistrationStatusAccepted,
+	response := &domain.HeartbeatResponse{
 		CurrentTime: time.Now().UTC().Format(time.RFC3339),
-		Interval:    300,
 	}
 
 	responseBytes, err := json.Marshal(response)
