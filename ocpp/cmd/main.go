@@ -5,14 +5,22 @@ import (
 	"log"
 	"net/http"
 	"ocpp/internal/config"
+	"ocpp/internal/infra"
 	"ocpp/internal/ocpp"
 )
 
 func main() {
-
 	cfg := config.NewConfig()
 
-	ocppService := ocpp.NewOcppService()
+	cluster, bucket, err := infra.CouchbaseInitialization(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer cluster.Close(nil)
+
+	repository := infra.NewCouchbaseChargePointRepository(bucket)
+	ocppService := ocpp.NewOcppService(repository)
 
 	http.HandleFunc("/ocpp/", ocppService.WsHandler)
 

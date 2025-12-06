@@ -5,7 +5,7 @@ import (
 	"ocpp/internal/domain"
 )
 
-func StatusNotificationHandler(message domain.OcppMessage, cpID string) (*domain.OcppMessage, error) {
+func StatusNotificationHandler(message domain.OcppMessage, cpID string, repository domain.ChargePointRepository) (*domain.OcppMessage, error) {
 	var request domain.StatusNotificationRequest
 
 	if err := json.Unmarshal(message.Message, &request); err != nil {
@@ -23,6 +23,6 @@ func StatusNotificationHandler(message domain.OcppMessage, cpID string) (*domain
 		Type:    message.Type,
 		Id:      message.Id,
 		Action:  message.Action,
-		Message: json.RawMessage(responseBytes),
+		Message: responseBytes,
 	}, nil
 }

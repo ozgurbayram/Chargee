@@ -6,9 +6,18 @@ import (
 	"time"
 )
 
-func HandleBootNotification(message domain.OcppMessage, cpId string) (*domain.OcppMessage, error) {
+func HandleBootNotification(message domain.OcppMessage, cpId string, repository domain.ChargePointRepository) (*domain.OcppMessage, error) {
 	var req domain.BootNotificationRequest
 	if err := json.Unmarshal(message.Message, &req); err != nil {
+		return nil, err
+	}
+
+	chargePoint := &domain.ChargePoint{
+		Id:            cpId,
+		LastHeartbeat: time.Now().UTC(),
+	}
+
+	if err := repository.Upsert(cpId, chargePoint); err != nil {
 		return nil, err
 	}
 
@@ -27,6 +36,6 @@ func HandleBootNotification(message domain.OcppMessage, cpId string) (*domain.Oc
 		Type:    domain.MessageTypeCallResult,
 		Id:      message.Id,
 		Action:  message.Action,
-		Message: json.RawMessage(responseBytes),
+		Message: responseBytes,
 	}, nil
 }

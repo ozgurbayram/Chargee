@@ -6,10 +6,19 @@ import (
 	"time"
 )
 
-func HandleHeartbeat(message domain.OcppMessage, cpID string) (*domain.OcppMessage, error) {
+func HandleHeartbeat(message domain.OcppMessage, cpID string, repository domain.ChargePointRepository) (*domain.OcppMessage, error) {
 	var req domain.HeartbeatRequest
 
 	if err := json.Unmarshal(message.Message, &req); err != nil {
+		return nil, err
+	}
+
+	chargePoint := &domain.ChargePoint{
+		Id:            cpID,
+		LastHeartbeat: time.Now().UTC(),
+	}
+
+	if err := repository.Upsert(cpID, chargePoint); err != nil {
 		return nil, err
 	}
 
@@ -26,6 +35,6 @@ func HandleHeartbeat(message domain.OcppMessage, cpID string) (*domain.OcppMessa
 		Type:    domain.MessageTypeCallResult,
 		Id:      message.Id,
 		Action:  message.Action,
-		Message: json.RawMessage(responseBytes),
+		Message: responseBytes,
 	}, nil
 }

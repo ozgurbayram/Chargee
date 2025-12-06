@@ -11,19 +11,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type OcppMessageHandler func(message domain.OcppMessage, cpID string) (*domain.OcppMessage, error)
+type MessageHandler func(message domain.OcppMessage, cpID string, repository domain.ChargePointRepository) (*domain.OcppMessage, error)
 
-type OcppService struct {
-	handlers map[string]OcppMessageHandler
+type Service struct {
+	handlers   map[string]MessageHandler
+	repository domain.ChargePointRepository
 }
 
-func NewOcppService() *OcppService {
-	return &OcppService{
-		handlers: map[string]OcppMessageHandler{
+func NewOcppService(repository domain.ChargePointRepository) *Service {
+	return &Service{
+		handlers: map[string]MessageHandler{
 			"BootNotification":   handlers.HandleBootNotification,
 			"Heartbeat":          handlers.HandleHeartbeat,
 			"StatusNotification": handlers.StatusNotificationHandler,
 		},
+		repository: repository,
 	}
 }
 
@@ -36,7 +38,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func (s *OcppService) WsHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Service) WsHandler(w http.ResponseWriter, r *http.Request) {
 
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
@@ -57,7 +59,12 @@ func (s *OcppService) WsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer conn.Close()
+	defer func(conn *websocket.Conn) {
+		err := conn.Close()
+		if err != nil {
+			fmt.Println("Error while closing websocket connection:", err)
+		}
+	}(conn)
 
 	for {
 		_, message, err := conn.ReadMessage()
@@ -75,7 +82,7 @@ func (s *OcppService) WsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, conn *websocket.Conn) error {
+func (s *Service) handleIncomingOcppMessage(message []byte, cpId string, conn *websocket.Conn) error {
 	var msg domain.OcppMessage
 
 	if err := json.Unmarshal(message, &msg); err != nil {
@@ -88,7 +95,7 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, con
 		return fmt.Errorf("unknown ocpp message action: %s", msg.Action)
 	}
 
-	response, err := handler(msg, cpId)
+	response, err := handler(msg, cpId, s.repository)
 	if err != nil {
 		return err
 	}
@@ -100,16 +107,14 @@ func (s *OcppService) handleIncomingOcppMessage(message []byte, cpId string, con
 	return nil
 }
 
-func (s *OcppService) writeResponse(conn *websocket.Conn, response domain.OcppMessage) error {
+func (s *Service) writeResponse(conn *websocket.Conn, response domain.OcppMessage) error {
 
-	_response := []interface{}{
+	responseBytes, err := json.Marshal([]interface{}{
 		response.Type,
 		response.Id,
 		response.Action,
 		response.Message,
-	}
-
-	responseBytes, err := json.Marshal(_response)
+	})
 
 	if err != nil {
 		return err

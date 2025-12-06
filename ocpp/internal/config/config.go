@@ -1,13 +1,25 @@
 package config
 
+type CouchbaseConfig struct {
+	ConnectionString string
+	Username         string
+	Password         string
+	BucketName       string
+}
+
 type Config struct {
-	Port         string `mapstructure:"port"`
-	CouchbaseURL string `mapstructure:"couchbase_url"`
+	Port            string
+	CouchbaseConfig CouchbaseConfig
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Port:         ":8083",
-		CouchbaseURL: "couchbase://localhost:8091",
+		Port: ":8083",
+		CouchbaseConfig: CouchbaseConfig{
+			ConnectionString: "localhost",
+			Username:         "admin",
+			Password:         "Helloworld665",
+			BucketName:       "ocpp",
+		},
 	}
 }
