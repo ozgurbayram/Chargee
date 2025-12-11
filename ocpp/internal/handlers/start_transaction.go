@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"ocpp/internal/domain"
+	"time"
 )
 
 var transactionCounter = 0
@@ -15,6 +16,26 @@ func HandleStartTransaction(message domain.OcppMessage, cpId string, repository 
 
 	transactionCounter++
 	transactionId := transactionCounter
+
+	// Get charge point
+	chargePoint, err := repository.Get(cpId)
+	if err != nil {
+		chargePoint = &domain.ChargePoint{Id: cpId}
+	}
+
+	// Add transaction
+	transaction := domain.Transaction{
+		Id:          transactionId,
+		ConnectorId: req.ConnectorId,
+		IdTag:       req.IdTag,
+		StartTime:   time.Now(),
+		StartMeter:  req.MeterStart,
+	}
+	chargePoint.Transactions = append(chargePoint.Transactions, transaction)
+
+	if err := repository.Upsert(cpId, chargePoint); err != nil {
+		return nil, err
+	}
 
 	response := &domain.StartTransactionResponse{
 		IdTagInfo: domain.IdTagInfo{

@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"ocpp/internal/domain"
-	"strconv"
 )
 
 func HandleMeterValues(message domain.OcppMessage, cpId string, repository domain.ChargePointRepository) (*domain.OcppMessage, error) {
@@ -12,13 +11,31 @@ func HandleMeterValues(message domain.OcppMessage, cpId string, repository domai
 		return nil, err
 	}
 
-	for _, mv := range req.MeterValue {
-		for _, sv := range mv.SampledValue {
-			if sv.Measurand == domain.MeasurandEnergyActiveImportRegister {
-				if _, err := strconv.ParseFloat(sv.Value, 64); err != nil {
-				}
+	chargePoint, err := repository.Get(cpId)
+	if err != nil {
+		chargePoint = &domain.ChargePoint{Id: cpId}
+	}
+
+	connectorFound := false
+	for i, conn := range chargePoint.Connectors {
+		if conn.Id == req.ConnectorId {
+			if len(req.MeterValue) > 0 {
+				chargePoint.Connectors[i].LastMeterValue = &req.MeterValue[len(req.MeterValue)-1]
 			}
+			connectorFound = true
+			break
 		}
+	}
+	if !connectorFound {
+		connector := domain.Connector{Id: req.ConnectorId}
+		if len(req.MeterValue) > 0 {
+			connector.LastMeterValue = &req.MeterValue[len(req.MeterValue)-1]
+		}
+		chargePoint.Connectors = append(chargePoint.Connectors, connector)
+	}
+
+	if err := repository.Upsert(cpId, chargePoint); err != nil {
+		return nil, err
 	}
 
 	response := &domain.MeterValuesResponse{}

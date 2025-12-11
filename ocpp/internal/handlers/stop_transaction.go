@@ -3,11 +3,33 @@ package handlers
 import (
 	"encoding/json"
 	"ocpp/internal/domain"
+	"time"
 )
 
 func HandleStopTransaction(message domain.OcppMessage, cpId string, repository domain.ChargePointRepository) (*domain.OcppMessage, error) {
 	var req domain.StopTransactionRequest
 	if err := json.Unmarshal(message.Message, &req); err != nil {
+		return nil, err
+	}
+
+	// Get charge point
+	chargePoint, err := repository.Get(cpId)
+	if err != nil {
+		chargePoint = &domain.ChargePoint{Id: cpId}
+	}
+
+	// Find and update transaction
+	now := time.Now()
+	for i, tx := range chargePoint.Transactions {
+		if tx.Id == req.TransactionId {
+			endTime := now
+			chargePoint.Transactions[i].EndTime = &endTime
+			chargePoint.Transactions[i].EndMeter = &req.MeterStop
+			break
+		}
+	}
+
+	if err := repository.Upsert(cpId, chargePoint); err != nil {
 		return nil, err
 	}
 

@@ -21,3 +21,14 @@ func (r *CouchbaseChargePointRepository) Upsert(cpId string, chargePoint *domain
 	_, err := collection.Upsert(cpId, chargePoint, nil)
 	return err
 }
+
+func (r *CouchbaseChargePointRepository) Get(cpId string) (*domain.ChargePoint, error) {
+	collection := r.bucket.DefaultCollection()
+	result, err := collection.Get(cpId, nil)
+	if err != nil {
+		return nil, err
+	}
+	var chargePoint domain.ChargePoint
+	err = result.Content(&chargePoint)
+	return &chargePoint, err
+}
