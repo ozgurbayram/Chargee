@@ -20,7 +20,7 @@ func StatusNotificationHandler(message domain.OcppMessage, cpID string, reposito
 	}
 
 	return &domain.OcppMessage{
-		Type:    message.Type,
+		Type:    domain.MessageTypeCallResult,
 		Id:      message.Id,
 		Action:  message.Action,
 		Message: responseBytes,

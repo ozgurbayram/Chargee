@@ -24,13 +24,16 @@ func NewOcppService(repository domain.ChargePointRepository) *Service {
 			"BootNotification":   handlers.HandleBootNotification,
 			"Heartbeat":          handlers.HandleHeartbeat,
 			"StatusNotification": handlers.StatusNotificationHandler,
+			"Authorize":          handlers.HandleAuthorize,
+			"StartTransaction":   handlers.HandleStartTransaction,
+			"MeterValues":        handlers.HandleMeterValues,
+			"StopTransaction":    handlers.HandleStopTransaction,
 		},
 		repository: repository,
 	}
 }
 
 var upgrader = websocket.Upgrader{
-
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
@@ -39,7 +42,6 @@ var upgrader = websocket.Upgrader{
 }
 
 func (s *Service) WsHandler(w http.ResponseWriter, r *http.Request) {
-
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 
@@ -79,7 +81,6 @@ func (s *Service) WsHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-
 }
 
 func (s *Service) handleIncomingOcppMessage(message []byte, cpId string, conn *websocket.Conn) error {
@@ -87,6 +88,10 @@ func (s *Service) handleIncomingOcppMessage(message []byte, cpId string, conn *w
 
 	if err := json.Unmarshal(message, &msg); err != nil {
 		return fmt.Errorf("invalid ocpp message format: %w", err)
+	}
+
+	if msg.Type != domain.MessageTypeCall {
+		return fmt.Errorf("unexpected message type: %d, only CALL messages are handled", msg.Type)
 	}
 
 	handler, ok := s.handlers[msg.Action]
@@ -108,13 +113,34 @@ func (s *Service) handleIncomingOcppMessage(message []byte, cpId string, conn *w
 }
 
 func (s *Service) writeResponse(conn *websocket.Conn, response domain.OcppMessage) error {
+	var responseBytes []byte
+	var err error
 
-	responseBytes, err := json.Marshal([]interface{}{
-		response.Type,
-		response.Id,
-		response.Action,
-		response.Message,
-	})
+	if response.Type == domain.MessageTypeCallResult {
+		responseBytes, err = json.Marshal([]interface{}{
+			response.Type,
+			response.Id,
+			response.Message,
+		})
+	} else if response.Type == domain.MessageTypeCallError {
+		// For CALLERROR, assume Message is error_details, and Action is error_code, but we need error_desc
+		// For now, send [4, uid, action, "error", message] or something
+		responseBytes, err = json.Marshal([]interface{}{
+			response.Type,
+			response.Id,
+			response.Action,
+			"Error",
+			response.Message,
+		})
+	} else {
+		// Fallback
+		responseBytes, err = json.Marshal([]interface{}{
+			response.Type,
+			response.Id,
+			response.Action,
+			response.Message,
+		})
+	}
 
 	if err != nil {
 		return err

@@ -3,7 +3,11 @@ module ocpp
 go 1.25.5
 
 require (
-	github.com/couchbase/gocb/v2 v2.11.1 // indirect
+	github.com/couchbase/gocb/v2 v2.11.1
+	github.com/gorilla/websocket v1.5.3
+)
+
+require (
 	github.com/couchbase/gocbcore/v10 v10.8.1 // indirect
 	github.com/couchbase/gocbcoreps v0.1.4 // indirect
 	github.com/couchbase/goprotostellar v1.0.2 // indirect
@@ -12,7 +16,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.62.0 // indirect
