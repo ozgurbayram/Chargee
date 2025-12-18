@@ -22,7 +22,6 @@ func HandleStartTransaction(message domain.OcppMessage, cpId string, repository 
 		chargePoint = &domain.ChargePoint{Id: cpId}
 	}
 
-	// Add transaction
 	transaction := domain.Transaction{
 		Id:          transactionId,
 		ConnectorId: req.ConnectorId,

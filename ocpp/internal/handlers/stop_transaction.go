@@ -12,13 +12,11 @@ func HandleStopTransaction(message domain.OcppMessage, cpId string, repository d
 		return nil, err
 	}
 
-	// Get charge point
 	chargePoint, err := repository.Get(cpId)
 	if err != nil {
 		chargePoint = &domain.ChargePoint{Id: cpId}
 	}
 
-	// Find and update transaction
 	now := time.Now()
 	for i, tx := range chargePoint.Transactions {
 		if tx.Id == req.TransactionId {

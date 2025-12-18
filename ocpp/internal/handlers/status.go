@@ -12,14 +12,12 @@ func StatusNotificationHandler(message domain.OcppMessage, cpID string, reposito
 		return nil, err
 	}
 
-	// Update charge point with connector status
 	chargePoint, err := repository.Get(cpID)
 	if err != nil {
 		// If not found, create new
 		chargePoint = &domain.ChargePoint{Id: cpID}
 	}
 
-	// Find or add connector
 	connectorFound := false
 	for i, conn := range chargePoint.Connectors {
 		if conn.Id == request.ConnectorId {
