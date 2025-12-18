@@ -13,12 +13,15 @@ func HandleHeartbeat(message domain.OcppMessage, cpID string, repository domain.
 		return nil, err
 	}
 
-	chargePoint := &domain.ChargePoint{
-		Id:            cpID,
-		LastHeartbeat: time.Now().UTC(),
+	cp, err := repository.Get(cpID)
+
+	if err != nil {
+		return nil, err
 	}
 
-	if err := repository.Upsert(cpID, chargePoint); err != nil {
+	cp.LastHeartbeat = time.Now()
+
+	if err := repository.Upsert(cpID, cp); err != nil {
 		return nil, err
 	}
 
