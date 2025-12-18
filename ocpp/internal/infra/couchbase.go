@@ -8,7 +8,7 @@ import (
 )
 
 func CouchbaseInitialization(cfg *config.Config) (*gocb.Cluster, *gocb.Bucket, error) {
-	cluster, err := gocb.Connect("couchbase://"+cfg.CouchbaseConfig.ConnectionString, gocb.ClusterOptions{
+	cluster, err := gocb.Connect(cfg.CouchbaseConfig.ConnectionString, gocb.ClusterOptions{
 		Authenticator: gocb.PasswordAuthenticator{
 			Username: cfg.CouchbaseConfig.Username,
 			Password: cfg.CouchbaseConfig.Password,

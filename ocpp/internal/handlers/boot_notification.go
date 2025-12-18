@@ -12,12 +12,15 @@ func HandleBootNotification(message domain.OcppMessage, cpId string, repository 
 		return nil, err
 	}
 
-	chargePoint := &domain.ChargePoint{
-		Id:            cpId,
-		LastHeartbeat: time.Now().UTC(),
+	cp, err := repository.Get(cpId)
+
+	if err != nil {
+		return nil, err
 	}
 
-	if err := repository.Upsert(cpId, chargePoint); err != nil {
+	cp.LastHeartbeat = time.Now().UTC()
+
+	if err := repository.Upsert(cpId, cp); err != nil {
 		return nil, err
 	}
 

@@ -16,9 +16,9 @@ func NewConfig() *Config {
 	return &Config{
 		Port: ":8083",
 		CouchbaseConfig: CouchbaseConfig{
-			ConnectionString: "localhost",
+			ConnectionString: "couchbase://localhost",
 			Username:         "admin",
-			Password:         "Helloworld665",
+			Password:         "password",
 			BucketName:       "ocpp",
 		},
 	}

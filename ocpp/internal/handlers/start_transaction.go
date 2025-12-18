@@ -17,7 +17,6 @@ func HandleStartTransaction(message domain.OcppMessage, cpId string, repository 
 	transactionCounter++
 	transactionId := transactionCounter
 
-	// Get charge point
 	chargePoint, err := repository.Get(cpId)
 	if err != nil {
 		chargePoint = &domain.ChargePoint{Id: cpId}
