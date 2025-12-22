@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - kafka-net
+      - chargee-net
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -24,7 +24,7 @@ services:
       ZOOKEEPER_INIT_LIMIT: 5
       ZOOKEEPER_SYNC_LIMIT: 2
     networks:
-      - kafka-net
+      - chargee-net
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -46,7 +46,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
-      - kafka-net
+      - chargee-net
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -58,7 +58,7 @@ services:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     networks:
-      - kafka-net
+      - chargee-net
 
   couchbase:
     image: couchbase/server:latest
@@ -73,12 +73,12 @@ services:
     volumes:
       - couchbase_data:/opt/couchbase/var
     networks:
-      - kafka-net
+      - chargee-net
 
 volumes:
   postgres_data:
   couchbase_data:
 
 networks:
-  kafka-net:
+  chargee-net:
     driver: bridge
